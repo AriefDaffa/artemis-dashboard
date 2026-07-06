@@ -23,3 +23,6 @@ Thumbs.db
 
 # temp scripts
 write_*.py
+
+# internal planning docs
+PLAN.md

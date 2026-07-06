@@ -30,7 +30,7 @@ html,body{background:var(--bg);color:var(--text);font-family:var(--mono);font-si
 .s-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 .s-val{font-size:11px;color:var(--text)}
 .s-item.active .s-label,.s-item.active .s-val{color:var(--green)}
-#tick-zone{margin-left:auto;display:flex;align-items:center;gap:20px;padding:5px 14px;border-left:1px solid var(--border);flex-shrink:0}
+#tick-zone{margin-left:auto;display:flex;align-items:center;gap:0;border-left:1px solid var(--border);flex-shrink:0}.tick-cell{display:flex;align-items:center;gap:6px;padding:5px 12px;border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0}
 .t-sym{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim)}
 .t-bid{font-size:14px;font-weight:600;color:var(--text)}
 .t-ask{font-size:14px;font-weight:600;color:var(--orange)}
@@ -105,13 +105,7 @@ tbody td{padding:5px 8px;font-size:11px}
   <div class="s-item" id="s-tokyo"><div class="s-pip"></div><span class="s-label">Tokyo</span><span class="s-val" id="sv-tokyo">—</span></div>
   <div class="s-item" id="s-london"><div class="s-pip"></div><span class="s-label">London</span><span class="s-val" id="sv-london">—</span></div>
   <div class="s-item" id="s-newyork"><div class="s-pip"></div><span class="s-label">New York</span><span class="s-val" id="sv-newyork">—</span></div>
-  <div id="tick-zone">
-    <span class="t-sym">GOLD.i#</span>
-    <span class="t-bid" id="t-bid">—</span>
-    <span>/</span>
-    <span class="t-ask" id="t-ask">—</span>
-    <span class="t-spd" id="t-spd">spd —</span>
-  </div>
+  <div id="tick-zone"></div>
 </div>
 
 <!-- KPI ROW -->
@@ -395,10 +389,17 @@ function renderHistory(arr) {
 }
 
 // tick
-function renderTick(d) {
-  $('t-bid').textContent = fmt(d.bid,2);
-  $('t-ask').textContent = fmt(d.ask,2);
-  $('t-spd').textContent = 'spd '+d.spread_pips;
+function renderTicks(ticksArr) {
+  const zone = $('tick-zone');
+  zone.innerHTML = ticksArr.map(d =>
+    '<div class="tick-cell">' +
+    '<span class="t-sym">' + d.symbol + '</span>' +
+    '<span class="t-bid">' + fmt(d.bid,2) + '</span>' +
+    '<span style="color:#444">/</span>' +
+    '<span class="t-ask">' + fmt(d.ask,2) + '</span>' +
+    '<span class="t-spd">spd ' + d.spread_pips + '</span>' +
+    '</div>'
+  ).join('');
 }
 
 // journal
@@ -421,23 +422,27 @@ async function fetchAll() {
   dot.classList.add('flash');
   setTimeout(() => dot.classList.remove('flash'), 200);
   try {
-    const [status, account, positions, orders, history, tick, session, log] = await Promise.all([
+    const [status, account, positions, orders, history, symbols, session, log] = await Promise.all([
       fetch('/api/status').then(r=>r.json()),
       fetch('/api/account').then(r=>r.json()),
       fetch('/api/positions').then(r=>r.json()),
       fetch('/api/orders').then(r=>r.json()),
       fetch('/api/history').then(r=>r.json()),
-      fetch('/api/tick?symbol=GOLD.i%23').then(r=>r.json()),
+      fetch('/api/symbols').then(r=>r.json()),
       fetch('/api/session').then(r=>r.json()),
       fetch('/api/log?lines=50').then(r=>r.json()),
     ]);
+    // fetch ticks for all active symbols in parallel
+    const ticks = Array.isArray(symbols) && symbols.length
+      ? await Promise.all(symbols.map(s => fetch('/api/tick?symbol='+encodeURIComponent(s)).then(r=>r.json()).catch(()=>null)))
+      : [];
     const mt5Dot = $('mt5-dot');
     mt5Dot.classList.toggle('on', !!(status.connected && status.connected_to_broker));
     if (!account.detail) renderAccount(account);
     if (Array.isArray(positions)) renderPositions(positions);
     if (Array.isArray(orders)) renderOrders(orders);
     if (Array.isArray(history)) renderHistory(history);
-    if (!tick.detail) renderTick(tick);
+    renderTicks(ticks.filter(t => t && !t.detail));
     renderSession(session);
     if (Array.isArray(log)) renderLog(log);
   } catch(e) {

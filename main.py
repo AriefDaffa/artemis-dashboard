@@ -250,6 +250,22 @@ async def api_history():
     return result
 
 
+@app.get("/api/symbols")
+async def api_symbols():
+    if not mt5_connect():
+        raise HTTPException(503, detail="MT5 not connected")
+    symbols = set()
+    positions = mt5.positions_get()
+    if positions:
+        for p in positions:
+            symbols.add(p.symbol)
+    orders = mt5.orders_get()
+    if orders:
+        for o in orders:
+            symbols.add(o.symbol)
+    return sorted(symbols)
+
+
 @app.get("/api/tick")
 async def api_tick(symbol: str = "GOLD.i#"):
     if not mt5_connect():
