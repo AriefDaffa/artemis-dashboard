@@ -12,6 +12,7 @@ from pathlib import Path
 import MetaTrader5 as mt5
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.responses import JSONResponse
 
 # ── paths ────────────────────────────────────────────────────────────────────
@@ -25,6 +26,7 @@ PORT = int(os.getenv("PORT", "8100"))
 
 # ── app ──────────────────────────────────────────────────────────────────────
 app = FastAPI(title="ARTEMIS", docs_url=None, redoc_url=None)
+app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
 
 # ── MT5 helpers ──────────────────────────────────────────────────────────────
