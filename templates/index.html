@@ -99,6 +99,46 @@ tbody td{padding:5px 8px;font-size:11px}
 .sym-badge:hover{border-color:var(--orange);color:var(--orange)}
 @media(max-width:900px){#kpi-row{grid-template-columns:repeat(2,1fr)}#main{grid-template-columns:1fr}}
 @media(max-width:520px){#kpi-row{grid-template-columns:1fr 1fr}#brand{font-size:11px;padding:0 8px}#acct-info{display:none}#topbar-right{padding:0 8px}.kpi-value{font-size:15px}.tw{max-height:180px}#equity-wrap{height:140px}#journal-wrap{height:140px}}
+/* ── controls bar (merged date + alert) ──────────────────────────────────── */
+#controls-bar{display:flex;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--panel2)}
+.cb-cell{display:flex;align-items:center;gap:6px;padding:4px 10px;border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0}
+.cb-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim)}
+.cb-cell input{background:#1a1a1a;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:2px 6px;width:70px;border-radius:0;color-scheme:dark}
+.cb-cell input[type=date]{width:110px}
+.cb-cell input:focus{outline:none;border-color:var(--orange)}
+.cb-dim{background:#1a1a1a!important;color:var(--dim)!important;border:1px solid var(--border)!important}
+.cb-sep{width:1px;background:var(--orange);opacity:.3;height:24px;margin:0 4px;flex-shrink:0}
+/* ── performance panel (EA breakdown + risk, collapsed by default) ────────── */
+#perf-panel{background:var(--border);border-top:1px solid var(--border)}
+#perf-panel .ph{background:var(--panel2);padding:7px 14px;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+#perf-panel .ph::after{content:'▲';font-size:9px;color:var(--dim);transition:transform .2s}
+#perf-panel.collapsed .ph::after{transform:rotate(180deg)}
+#perf-panel.collapsed .perf-body{display:none}
+.perf-body{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px}
+.ea-card{background:var(--panel);padding:10px 14px}
+.ea-card-title{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;font-weight:600;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.ea-stat-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #1a1a1a}
+.ea-stat-row:last-child{border-bottom:none}
+.ea-stat-label{font-size:10px;color:var(--dim)}
+.ea-stat-val{font-size:11px;font-weight:500}
+.risk-card{background:var(--panel);padding:10px 14px;grid-column:span 2}
+.risk-card-title{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;font-weight:600;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.risk-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px}
+.rc{padding:8px 10px;border-right:1px solid #1a1a1a}
+.rc:last-child{border-right:none}
+.rc-label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:3px}
+.rc-val{font-size:13px;font-weight:600;color:var(--text)}
+.rc-val.pos{color:var(--green)}.rc-val.neg{color:var(--red)}.rc-val.warn{color:var(--yellow)}
+/* ── collapsible panels ─────────────────────────────────────────────────── */
+.ph{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between}
+.ph::after{content:'▲';font-size:9px;color:var(--dim);transition:transform .2s;margin-left:8px}
+.panel.collapsed .ph::after{transform:rotate(180deg)}
+.panel.collapsed .panel-body{display:none}
+.panel-body{overflow:hidden}
+/* ── resizable grid ──────────────────────────────────────────────────────── */
+#main{position:relative}
+#grid-divider{position:absolute;top:0;bottom:0;width:5px;background:transparent;cursor:col-resize;z-index:50;border-left:1px solid var(--border);border-right:1px solid var(--border)}
+#grid-divider:hover,#grid-divider.dragging{background:var(--orange);opacity:.5}
 </style>
 </head>
 <body>
@@ -129,19 +169,17 @@ tbody td{padding:5px 8px;font-size:11px}
   <div id="tick-zone"></div>
 </div>
 
-<!-- DATE BAR -->
-<div id="date-bar">
-  <div class="date-cell"><label>From</label><input type="date" id="from-date"></div>
-  <div class="date-cell"><label>To</label><input type="date" id="to-date"></div>
-  <div class="date-cell"><span class="al-btn" onclick="applyDateRange()">Apply</span></div>
-  <div class="date-cell"><span class="al-btn" style="background:#1a1a1a;color:var(--dim);border:1px solid var(--border)" onclick="resetDateRange()">Today</span></div>
-</div>
-<!-- ALERT BAR -->
-<div id="alert-bar">
-  <div class="alert-cell"><label>DD Alert %</label><input type="number" id="al-dd" placeholder="15" min="1" max="100" step="0.5"></div>
-  <div class="alert-cell"><label>Equity Floor</label><input type="number" id="al-eq" placeholder="0" step="1"></div>
-  <div class="alert-cell"><span class="al-btn" onclick="saveAlerts()">Save Alerts</span></div>
-  <div class="alert-cell" style="color:var(--dim);font-size:10px" id="al-status">alerts off</div>
+<!-- CONTROLS BAR (date range + alerts merged) -->
+<div id="controls-bar">
+  <div class="cb-cell"><span class="cb-label">From</span><input type="date" id="from-date"></div>
+  <div class="cb-cell"><span class="cb-label">To</span><input type="date" id="to-date"></div>
+  <div class="cb-cell"><span class="al-btn" onclick="applyDateRange()">Apply</span></div>
+  <div class="cb-cell"><span class="al-btn cb-dim" onclick="resetDateRange()">Today</span></div>
+  <div class="cb-sep"></div>
+  <div class="cb-cell"><span class="cb-label">DD%</span><input type="number" id="al-dd" placeholder="15" min="1" max="100" step="0.5"></div>
+  <div class="cb-cell"><span class="cb-label">EQ Floor</span><input type="number" id="al-eq" placeholder="0" step="1"></div>
+  <div class="cb-cell"><span class="al-btn" onclick="saveAlerts()">Set Alerts</span></div>
+  <div class="cb-cell"><span id="al-status" style="color:var(--dim);font-size:10px">alerts off</span></div>
 </div>
 <!-- KPI ROW -->
 <div id="kpi-row">
@@ -191,10 +229,11 @@ tbody td{padding:5px 8px;font-size:11px}
 </div>
 <!-- MAIN GRID -->
 <div id="main">
+<div id="grid-divider"></div>
   <!-- col left top: open positions -->
   <div class="panel">
-    <div class="ph">Open Positions <span class="cnt" id="pos-cnt">0</span></div>
-    <div class="tw">
+    <div class="ph" onclick="togglePanel(this)">Open Positions <span class="cnt" id="pos-cnt">0</span></div>
+    <div class="panel-body"><div class="tw">
       <table id="pos-table">
         <thead><tr>
           <th>Ticket</th><th>Symbol</th><th>Type</th><th>EA</th>
@@ -204,19 +243,19 @@ tbody td{padding:5px 8px;font-size:11px}
         </tr></thead>
         <tbody id="pos-body"><tr><td colspan="9" class="empty">No open positions</td></tr></tbody>
       </table>
-    </div>
+    </div></div>
   </div>
 
   <!-- col right top: equity curve -->
   <div class="panel">
-    <div class="ph">Equity Curve <span class="cnt">Today</span></div>
-    <div id="equity-wrap"><canvas id="equity-chart"></canvas></div>
+    <div class="ph" onclick="togglePanel(this)">Equity Curve <span class="cnt">Today</span></div>
+    <div class="panel-body"><div id="equity-wrap"><canvas id="equity-chart"></canvas></div></div>
   </div>
 
-  <!-- col left mid: pending orders -->
-  <div class="panel">
-    <div class="ph">Pending Orders <span class="cnt" id="ord-cnt">0</span></div>
-    <div class="tw">
+  <!-- col left mid: pending orders (collapsed by default) -->
+  <div class="panel collapsed">
+    <div class="ph" onclick="togglePanel(this)">Pending Orders <span class="cnt" id="ord-cnt">0</span></div>
+    <div class="panel-body"><div class="tw">
       <table id="ord-table">
         <thead><tr>
           <th>Ticket</th><th>Symbol</th><th>Type</th><th>EA</th>
@@ -225,13 +264,13 @@ tbody td{padding:5px 8px;font-size:11px}
         </tr></thead>
         <tbody id="ord-body"><tr><td colspan="8" class="empty">No pending orders</td></tr></tbody>
       </table>
-    </div>
+    </div></div>
   </div>
 
-  <!-- col right mid: today's deals -->
-  <div class="panel">
-    <div class="ph">Today's Deals <span class="cnt" id="deal-cnt">0</span></div>
-    <div class="tw">
+  <!-- col right mid: today's deals (collapsed by default) -->
+  <div class="panel collapsed">
+    <div class="ph" onclick="togglePanel(this)">Today's Deals <span class="cnt" id="deal-cnt">0</span></div>
+    <div class="panel-body"><div class="tw">
       <table id="deal-table">
         <thead><tr>
           <th>Time</th><th>Ticket</th><th>Symbol</th><th>Type</th><th>EA</th>
@@ -239,32 +278,73 @@ tbody td{padding:5px 8px;font-size:11px}
         </tr></thead>
         <tbody id="deal-body"><tr><td colspan="8" class="empty">No deals today</td></tr></tbody>
       </table>
+    </div></div>
+  </div>
+
+  <!-- col left bottom: balance history chart (collapsed by default) -->
+  <div class="panel collapsed">
+    <div class="ph" onclick="togglePanel(this)">Balance History <span class="cnt" id="bal-days-label">7d</span></div>
+    <div class="panel-body">
+      <div id="balance-wrap"><canvas id="balance-chart"></canvas></div>
+      <div style="padding:6px 14px;border-top:1px solid var(--border);display:flex;gap:8px">
+        <span class="sym-badge" onclick="loadBalanceChart(7)">7D</span>
+        <span class="sym-badge" onclick="loadBalanceChart(14)">14D</span>
+        <span class="sym-badge" onclick="loadBalanceChart(30)">30D</span>
+      </div>
+      <div style="padding:6px 14px;font-size:11px;color:var(--dim);line-height:2">
+        <span style="color:var(--orange)">LOGIN</span>&nbsp;&nbsp;<span id="ai-login">—</span><br>
+        <span style="color:var(--orange)">SERVER</span>&nbsp;<span id="ai-server">—</span><br>
+        <span style="color:var(--orange)">LEVER</span>&nbsp;&nbsp;<span id="ai-lev">—</span><br>
+        <span style="color:var(--orange)">CURR</span>&nbsp;&nbsp;&nbsp;<span id="ai-curr">—</span><br>
+        <span style="color:var(--orange)">MARGIN LVL</span>&nbsp;<span id="ai-ml">—</span>
+      </div>
     </div>
   </div>
 
-  <!-- col left bottom: balance history chart -->
-  <div class="panel">
-    <div class="ph">Balance History <span class="cnt" id="bal-days-label">7d</span></div>
-    <div id="balance-wrap"><canvas id="balance-chart"></canvas></div>
-    <div style="padding:6px 14px;border-top:1px solid var(--border);display:flex;gap:8px">
-      <span class="sym-badge" onclick="loadBalanceChart(7)">7D</span>
-      <span class="sym-badge" onclick="loadBalanceChart(14)">14D</span>
-      <span class="sym-badge" onclick="loadBalanceChart(30)">30D</span>
-    </div>
-    <div style="padding:6px 14px;font-size:11px;color:var(--dim);line-height:2">
-      <span style="color:var(--orange)">LOGIN</span>&nbsp;&nbsp;<span id="ai-login">—</span><br>
-      <span style="color:var(--orange)">SERVER</span>&nbsp;<span id="ai-server">—</span><br>
-      <span style="color:var(--orange)">LEVER</span>&nbsp;&nbsp;<span id="ai-lev">—</span><br>
-      <span style="color:var(--orange)">CURR</span>&nbsp;&nbsp;&nbsp;<span id="ai-curr">—</span><br>
-      <span style="color:var(--orange)">MARGIN LVL</span>&nbsp;<span id="ai-ml">—</span>
-    </div>
-
+  <!-- col right bottom: EA journal (collapsed by default) -->
+  <div class="panel collapsed">
+    <div class="ph" onclick="togglePanel(this)">EA Journal <span class="cnt">Last 50 lines</span></div>
+    <div class="panel-body"><div id="journal-wrap"></div></div>
   </div>
+</div>
 
-  <!-- col right bottom: EA journal -->
-  <div class="panel">
-    <div class="ph">EA Journal <span class="cnt">Last 50 lines</span></div>
-    <div id="journal-wrap" id="journal-inner"></div>
+<!-- PERFORMANCE PANEL (EA breakdown + Risk metrics, collapsed by default) -->
+<div id="perf-panel" class="collapsed">
+  <div class="ph" onclick="this.parentElement.classList.toggle('collapsed')">Performance Analytics — EA Breakdown &amp; Risk Metrics</div>
+  <div class="perf-body">
+    <div class="ea-card">
+      <div class="ea-card-title">Gold Reaper</div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Trades</span><span class="ea-stat-val" id="gr-trades">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Win Rate</span><span class="ea-stat-val" id="gr-wr">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Net P&amp;L</span><span class="ea-stat-val" id="gr-pnl">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Profit Factor</span><span class="ea-stat-val" id="gr-pf">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Avg Trade</span><span class="ea-stat-val" id="gr-avg">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Best Trade</span><span class="ea-stat-val" id="gr-best">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Worst Trade</span><span class="ea-stat-val" id="gr-worst">—</span></div>
+    </div>
+    <div class="ea-card">
+      <div class="ea-card-title">Ultimate Breakout</div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Trades</span><span class="ea-stat-val" id="ub-trades">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Win Rate</span><span class="ea-stat-val" id="ub-wr">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Net P&amp;L</span><span class="ea-stat-val" id="ub-pnl">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Profit Factor</span><span class="ea-stat-val" id="ub-pf">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Avg Trade</span><span class="ea-stat-val" id="ub-avg">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Best Trade</span><span class="ea-stat-val" id="ub-best">—</span></div>
+      <div class="ea-stat-row"><span class="ea-stat-label">Worst Trade</span><span class="ea-stat-val" id="ub-worst">—</span></div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-card-title">Risk Metrics</div>
+      <div class="risk-grid">
+        <div class="rc"><div class="rc-label">Avg R:R</div><div class="rc-val" id="rc-rr">—</div></div>
+        <div class="rc"><div class="rc-label">Exp Value</div><div class="rc-val" id="rc-ev">—</div></div>
+        <div class="rc"><div class="rc-label">Max Consec W</div><div class="rc-val" id="rc-cw">—</div></div>
+        <div class="rc"><div class="rc-label">Max Consec L</div><div class="rc-val" id="rc-cl">—</div></div>
+        <div class="rc"><div class="rc-label">Avg Win</div><div class="rc-val" id="rc-aw">—</div></div>
+        <div class="rc"><div class="rc-label">Avg Loss</div><div class="rc-val" id="rc-al">—</div></div>
+        <div class="rc"><div class="rc-label">Sharpe</div><div class="rc-val" id="rc-sh">—</div></div>
+        <div class="rc"><div class="rc-label">Recovery F</div><div class="rc-val" id="rc-rf">—</div></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -338,6 +418,109 @@ async function checkAlerts(ddPct, equity) {
     setTimeout(() => { body.style.outline = ''; }, 3000);
     try { await fetch('/api/alert', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({message: msg}) }); } catch(e) {}
   }
+}
+
+// ── collapsible panels ────────────────────────────────────────────────────
+function togglePanel(ph) {
+  ph.parentElement.classList.toggle('collapsed');
+}
+
+// ── resizable grid ────────────────────────────────────────────────────────
+(function initResizer() {
+  const main = document.getElementById('main');
+  const divider = document.getElementById('grid-divider');
+  let isDragging = false, startX = 0, startLeft = 0;
+  const minLeft = 25, maxLeft = 75; // % bounds
+  const savedLeft = localStorage.getItem('artemis_grid_left');
+  const leftPct = savedLeft ? parseFloat(savedLeft) : 50;
+  main.style.gridTemplateColumns = `${leftPct}% 1fr`;
+  divider.style.left = `${leftPct}%`;
+  divider.addEventListener('mousedown', e => {
+    isDragging = true; startX = e.clientX; startLeft = leftPct;
+    divider.classList.add('dragging');
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const newLeft = Math.max(minLeft, Math.min(maxLeft, startLeft + (dx / main.offsetWidth) * 100));
+    main.style.gridTemplateColumns = `${newLeft}% 1fr`;
+    divider.style.left = `${newLeft}%`;
+  });
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      divider.classList.remove('dragging');
+      const finalLeft = parseFloat(divider.style.left);
+      localStorage.setItem('artemis_grid_left', finalLeft);
+    }
+  });
+})();
+
+// ── EA breakdown + risk metrics ───────────────────────────────────────────
+function renderEABreakdown(deals) {
+  const grDeals = deals.filter(d => d.ea && d.ea.startsWith('Gold Reaper') && d.profit !== 0);
+  const ubDeals = deals.filter(d => d.ea && d.ea.startsWith('Ultimate Breakout') && d.profit !== 0);
+  const calcStats = arr => {
+    if (!arr.length) return { trades: 0, wr: 0, pnl: 0, pf: 0, avg: 0, best: 0, worst: 0 };
+    const wins = arr.filter(d => d.profit > 0);
+    const losses = arr.filter(d => d.profit < 0);
+    const grossWin = wins.reduce((s, d) => s + d.profit, 0);
+    const grossLoss = Math.abs(losses.reduce((s, d) => s + d.profit, 0));
+    const pf = grossLoss > 0 ? grossWin / grossLoss : (grossWin > 0 ? 999 : 0);
+    const pnl = arr.reduce((s, d) => s + d.profit, 0);
+    const best = arr.length ? Math.max(...arr.map(d => d.profit)) : 0;
+    const worst = arr.length ? Math.min(...arr.map(d => d.profit)) : 0;
+    return { trades: arr.length, wr: (wins.length / arr.length) * 100, pnl, pf, avg: pnl / arr.length, best, worst };
+  };
+  const gr = calcStats(grDeals), ub = calcStats(ubDeals);
+  $('gr-trades').textContent = gr.trades;
+  $('gr-wr').textContent = gr.trades ? gr.wr.toFixed(1) + '%' : '—';
+  $('gr-pnl').textContent = fmtPnl(gr.pnl); $('gr-pnl').className = 'ea-stat-val ' + pnlCls(gr.pnl);
+  $('gr-pf').textContent = gr.trades ? gr.pf.toFixed(2) : '—';
+  $('gr-avg').textContent = gr.trades ? fmtPnl(gr.avg) : '—';
+  $('gr-best').textContent = gr.trades ? fmtPnl(gr.best) : '—';
+  $('gr-worst').textContent = gr.trades ? fmtPnl(gr.worst) : '—';
+  $('ub-trades').textContent = ub.trades;
+  $('ub-wr').textContent = ub.trades ? ub.wr.toFixed(1) + '%' : '—';
+  $('ub-pnl').textContent = fmtPnl(ub.pnl); $('ub-pnl').className = 'ea-stat-val ' + pnlCls(ub.pnl);
+  $('ub-pf').textContent = ub.trades ? ub.pf.toFixed(2) : '—';
+  $('ub-avg').textContent = ub.trades ? fmtPnl(ub.avg) : '—';
+  $('ub-best').textContent = ub.trades ? fmtPnl(ub.best) : '—';
+  $('ub-worst').textContent = ub.trades ? fmtPnl(ub.worst) : '—';
+}
+function renderRiskMetrics(deals) {
+  const trades = deals.filter(d => d.profit !== 0);
+  if (!trades.length) {
+    $('rc-rr').textContent = '—'; $('rc-ev').textContent = '—'; $('rc-cw').textContent = '—';
+    $('rc-cl').textContent = '—'; $('rc-aw').textContent = '—'; $('rc-al').textContent = '—';
+    $('rc-sh').textContent = '—'; $('rc-rf').textContent = '—';
+    return;
+  }
+  const wins = trades.filter(d => d.profit > 0), losses = trades.filter(d => d.profit < 0);
+  const avgWin = wins.length ? wins.reduce((s, d) => s + d.profit, 0) / wins.length : 0;
+  const avgLoss = losses.length ? Math.abs(losses.reduce((s, d) => s + d.profit, 0) / losses.length) : 1;
+  const rr = avgLoss > 0 ? avgWin / avgLoss : 0;
+  const wr = wins.length / trades.length;
+  const ev = (wr * avgWin) - ((1 - wr) * avgLoss);
+  let cw = 0, cl = 0, streak = 0, maxW = 0, maxL = 0;
+  trades.forEach(d => {
+    if (d.profit > 0) { cw++; cl = 0; if (cw > maxW) maxW = cw; }
+    else { cl++; cw = 0; if (cl > maxL) maxL = cl; }
+  });
+  const grossPnl = trades.reduce((s, d) => s + d.profit, 0);
+  const drawdown = Math.abs(Math.min(...trades.map((d, i) => trades.slice(0, i + 1).reduce((s, x) => s + x.profit, 0))));
+  const recoveryF = drawdown > 0 ? (grossPnl / drawdown) : 0;
+  const stdDev = Math.sqrt(trades.reduce((s, d) => s + Math.pow(d.profit - (grossPnl / trades.length), 2), 0) / trades.length);
+  const sharpe = stdDev > 0 ? (grossPnl / trades.length) / stdDev : 0;
+  $('rc-rr').textContent = rr.toFixed(2); $('rc-rr').className = 'rc-val ' + (rr >= 1.5 ? 'pos' : rr >= 1 ? '' : 'neg');
+  $('rc-ev').textContent = fmtPnl(ev); $('rc-ev').className = 'rc-val ' + pnlCls(ev);
+  $('rc-cw').textContent = maxW; $('rc-cw').className = 'rc-val pos';
+  $('rc-cl').textContent = maxL; $('rc-cl').className = 'rc-val ' + (maxL >= 5 ? 'warn' : maxL >= 8 ? 'neg' : '');
+  $('rc-aw').textContent = fmtPnl(avgWin); $('rc-aw').className = 'rc-val pos';
+  $('rc-al').textContent = fmtPnl(-avgLoss); $('rc-al').className = 'rc-val neg';
+  $('rc-sh').textContent = sharpe.toFixed(2); $('rc-sh').className = 'rc-val ' + (sharpe >= 1 ? 'pos' : sharpe >= 0.5 ? '' : 'neg');
+  $('rc-rf').textContent = recoveryF.toFixed(2); $('rc-rf').className = 'rc-val ' + (recoveryF >= 2 ? 'pos' : recoveryF >= 1 ? '' : 'neg');
 }
 
 // ── date range ─────────────────────────────────────────────────────────────
@@ -546,6 +729,8 @@ function renderHistory(arr) {
     '<td class="r pnl '+pnlCls(d.profit)+'">'+fmtPnl(d.profit)+'</td>'+
     '<td class="r pnl '+pnlCls(d.cumulative)+'">'+fmtPnl(d.cumulative)+'</td></tr>'
   ).join('');
+  renderEABreakdown(arr);
+  renderRiskMetrics(arr);
   checkAlerts(maxDD, window._lastEquity||0);
 }
 
