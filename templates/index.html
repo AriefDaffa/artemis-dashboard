@@ -77,11 +77,32 @@ tbody td{padding:5px 8px;font-size:11px}
 .jl.trade{color:var(--green)}
 .jl.err{color:var(--red)}
 .jl.warn{color:var(--yellow)}
+
+#disconnect-banner{display:none;background:var(--red);color:#fff;text-align:center;padding:6px 14px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;border-bottom:1px solid #aa0000}
+#disconnect-banner.show{display:block}
+#alert-bar{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);background:var(--panel2);overflow-x:auto}
+.alert-cell{display:flex;align-items:center;gap:8px;padding:5px 14px;border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0}
+.alert-cell label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim)}
+.alert-cell input{background:#1a1a1a;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:2px 6px;width:70px;border-radius:0}
+.alert-cell input:focus{outline:none;border-color:var(--orange)}
+.alert-cell .al-btn{background:var(--orange);color:#000;border:none;font-family:var(--mono);font-size:10px;font-weight:600;padding:3px 10px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;border-radius:0}
+.alert-cell .al-btn:hover{background:#e65c00}
+#date-bar{display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);background:var(--panel2)}
+.date-cell{display:flex;align-items:center;gap:8px;padding:5px 14px;border-right:1px solid var(--border);white-space:nowrap}
+.date-cell label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim)}
+.date-cell input[type=date]{background:#1a1a1a;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:2px 6px;border-radius:0;color-scheme:dark}
+.date-cell input[type=date]:focus{outline:none;border-color:var(--orange)}
+#balance-wrap{padding:8px;height:160px;position:relative}
+.sym-filter{display:flex;align-items:center;gap:4px;padding:4px 8px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.sym-badge{display:inline-block;padding:2px 8px;font-size:10px;font-weight:600;letter-spacing:.08em;cursor:pointer;border:1px solid var(--border);color:var(--dim);background:var(--panel2);border-radius:0;font-family:var(--mono)}
+.sym-badge.active{background:var(--orange);color:#000;border-color:var(--orange)}
+.sym-badge:hover{border-color:var(--orange);color:var(--orange)}
 @media(max-width:900px){#kpi-row{grid-template-columns:repeat(2,1fr)}#main{grid-template-columns:1fr}}
 @media(max-width:520px){#kpi-row{grid-template-columns:1fr 1fr}#brand{font-size:11px;padding:0 8px}#acct-info{display:none}#topbar-right{padding:0 8px}.kpi-value{font-size:15px}.tw{max-height:180px}#equity-wrap{height:140px}#journal-wrap{height:140px}}
 </style>
 </head>
 <body>
+<div id="disconnect-banner">&#9888; MT5 DISCONNECTED &mdash; RECONNECTING...</div>
 <!-- TOP BAR -->
 <div id="topbar">
   <div id="brand">ARTEMIS</div>
@@ -108,6 +129,20 @@ tbody td{padding:5px 8px;font-size:11px}
   <div id="tick-zone"></div>
 </div>
 
+<!-- DATE BAR -->
+<div id="date-bar">
+  <div class="date-cell"><label>From</label><input type="date" id="from-date"></div>
+  <div class="date-cell"><label>To</label><input type="date" id="to-date"></div>
+  <div class="date-cell"><span class="al-btn" onclick="applyDateRange()">Apply</span></div>
+  <div class="date-cell"><span class="al-btn" style="background:#1a1a1a;color:var(--dim);border:1px solid var(--border)" onclick="resetDateRange()">Today</span></div>
+</div>
+<!-- ALERT BAR -->
+<div id="alert-bar">
+  <div class="alert-cell"><label>DD Alert %</label><input type="number" id="al-dd" placeholder="15" min="1" max="100" step="0.5"></div>
+  <div class="alert-cell"><label>Equity Floor</label><input type="number" id="al-eq" placeholder="0" step="1"></div>
+  <div class="alert-cell"><span class="al-btn" onclick="saveAlerts()">Save Alerts</span></div>
+  <div class="alert-cell" style="color:var(--dim);font-size:10px" id="al-status">alerts off</div>
+</div>
 <!-- KPI ROW -->
 <div id="kpi-row">
   <div class="kpi">
@@ -150,6 +185,10 @@ tbody td{padding:5px 8px;font-size:11px}
   <div id="dd-text">0.00%</div>
 </div>
 
+<!-- SYMBOL FILTER -->
+<div class="sym-filter" id="sym-filter">
+  <span class="sym-badge active" data-sym="ALL" onclick="setSymFilter(this)">ALL</span>
+</div>
 <!-- MAIN GRID -->
 <div id="main">
   <!-- col left top: open positions -->
@@ -158,7 +197,7 @@ tbody td{padding:5px 8px;font-size:11px}
     <div class="tw">
       <table id="pos-table">
         <thead><tr>
-          <th>Ticket</th><th>Symbol</th><th>Type</th>
+          <th>Ticket</th><th>Symbol</th><th>Type</th><th>EA</th>
           <th class="r">Lots</th><th class="r">Entry</th>
           <th class="r">Current</th><th class="r">SL</th>
           <th class="r">TP</th><th class="r">P&L</th>
@@ -180,7 +219,7 @@ tbody td{padding:5px 8px;font-size:11px}
     <div class="tw">
       <table id="ord-table">
         <thead><tr>
-          <th>Ticket</th><th>Symbol</th><th>Type</th>
+          <th>Ticket</th><th>Symbol</th><th>Type</th><th>EA</th>
           <th class="r">Lots</th><th class="r">Price</th>
           <th class="r">SL</th><th class="r">TP</th><th>Placed</th>
         </tr></thead>
@@ -195,7 +234,7 @@ tbody td{padding:5px 8px;font-size:11px}
     <div class="tw">
       <table id="deal-table">
         <thead><tr>
-          <th>Time</th><th>Ticket</th><th>Symbol</th><th>Type</th>
+          <th>Time</th><th>Ticket</th><th>Symbol</th><th>Type</th><th>EA</th>
           <th class="r">Lots</th><th class="r">Price</th><th class="r">Profit</th><th class="r">Cumul.</th>
         </tr></thead>
         <tbody id="deal-body"><tr><td colspan="8" class="empty">No deals today</td></tr></tbody>
@@ -203,16 +242,23 @@ tbody td{padding:5px 8px;font-size:11px}
     </div>
   </div>
 
-  <!-- col left bottom: empty / filler for layout -->
+  <!-- col left bottom: balance history chart -->
   <div class="panel">
-    <div class="ph">Account Info</div>
-    <div style="padding:10px 14px;line-height:2;font-size:11px;color:var(--dim)">
+    <div class="ph">Balance History <span class="cnt" id="bal-days-label">7d</span></div>
+    <div id="balance-wrap"><canvas id="balance-chart"></canvas></div>
+    <div style="padding:6px 14px;border-top:1px solid var(--border);display:flex;gap:8px">
+      <span class="sym-badge" onclick="loadBalanceChart(7)">7D</span>
+      <span class="sym-badge" onclick="loadBalanceChart(14)">14D</span>
+      <span class="sym-badge" onclick="loadBalanceChart(30)">30D</span>
+    </div>
+    <div style="padding:6px 14px;font-size:11px;color:var(--dim);line-height:2">
       <span style="color:var(--orange)">LOGIN</span>&nbsp;&nbsp;<span id="ai-login">—</span><br>
       <span style="color:var(--orange)">SERVER</span>&nbsp;<span id="ai-server">—</span><br>
       <span style="color:var(--orange)">LEVER</span>&nbsp;&nbsp;<span id="ai-lev">—</span><br>
       <span style="color:var(--orange)">CURR</span>&nbsp;&nbsp;&nbsp;<span id="ai-curr">—</span><br>
       <span style="color:var(--orange)">MARGIN LVL</span>&nbsp;<span id="ai-ml">—</span>
     </div>
+
   </div>
 
   <!-- col right bottom: EA journal -->
@@ -263,6 +309,111 @@ const eqChart = new Chart(eqCtx, {
   }
 });
 
+// ── alert settings ────────────────────────────────────────────────────────
+function saveAlerts() {
+  const dd = parseFloat(document.getElementById('al-dd').value);
+  const eq = parseFloat(document.getElementById('al-eq').value);
+  if (!isNaN(dd)) localStorage.setItem('artemis_al_dd', dd);
+  if (!isNaN(eq)) localStorage.setItem('artemis_al_eq', eq);
+  document.getElementById('al-status').textContent = 'alerts saved';
+  setTimeout(() => { document.getElementById('al-status').textContent = 'alerts on'; }, 1500);
+}
+function loadAlertSettings() {
+  const dd = localStorage.getItem('artemis_al_dd');
+  const eq = localStorage.getItem('artemis_al_eq');
+  if (dd) document.getElementById('al-dd').value = dd;
+  if (eq) document.getElementById('al-eq').value = eq;
+  if (dd || eq) document.getElementById('al-status').textContent = 'alerts on';
+}
+async function checkAlerts(ddPct, equity) {
+  const dd = parseFloat(localStorage.getItem('artemis_al_dd') || '0');
+  const eq = parseFloat(localStorage.getItem('artemis_al_eq') || '0');
+  const body = document.body;
+  let triggered = false;
+  let msg = '';
+  if (dd > 0 && ddPct >= dd) { triggered = true; msg += 'Drawdown ' + ddPct.toFixed(2) + '% exceeds threshold ' + dd + '%. '; }
+  if (eq > 0 && equity <= eq) { triggered = true; msg += 'Equity ' + equity + ' below floor ' + eq + '. '; }
+  if (triggered) {
+    body.style.outline = '3px solid #ff2222';
+    setTimeout(() => { body.style.outline = ''; }, 3000);
+    try { await fetch('/api/alert', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({message: msg}) }); } catch(e) {}
+  }
+}
+
+// ── date range ─────────────────────────────────────────────────────────────
+let _fromDate = null, _toDate = null;
+function getTodayStr() { return new Date().toISOString().split('T')[0]; }
+function applyDateRange() {
+  _fromDate = document.getElementById('from-date').value || null;
+  _toDate   = document.getElementById('to-date').value   || null;
+  fetchHistory();
+}
+function resetDateRange() {
+  _fromDate = null; _toDate = null;
+  const t = getTodayStr();
+  document.getElementById('from-date').value = t;
+  document.getElementById('to-date').value   = t;
+  fetchHistory();
+}
+function initDateBar() {
+  const t = getTodayStr();
+  document.getElementById('from-date').value = t;
+  document.getElementById('to-date').value   = t;
+}
+
+// ── symbol filter ──────────────────────────────────────────────────────────
+let _symFilter = 'ALL';
+function setSymFilter(el) {
+  document.querySelectorAll('.sym-badge[data-sym]').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  _symFilter = el.dataset.sym;
+  if (window._lastPositions) renderPositions(window._lastPositions);
+  if (window._lastOrders)    renderOrders(window._lastOrders);
+  if (window._lastDeals)     renderHistory(window._lastDeals);
+}
+function updateSymFilterBar(symbols) {
+  const bar = document.getElementById('sym-filter');
+  const existing = Array.from(bar.querySelectorAll('.sym-badge[data-sym]')).map(b => b.dataset.sym);
+  symbols.forEach(s => {
+    if (!existing.includes(s)) {
+      const b = document.createElement('span');
+      b.className = 'sym-badge'; b.dataset.sym = s; b.textContent = s;
+      b.onclick = function(){ setSymFilter(this); };
+      bar.appendChild(b);
+    }
+  });
+}
+
+// ── balance chart ──────────────────────────────────────────────────────────
+const balCtx = document.getElementById('balance-chart').getContext('2d');
+const balChart = new Chart(balCtx, {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Balance', data: [], borderColor: '#ff6600',
+    backgroundColor: 'rgba(255,102,0,0.07)', borderWidth: 1.5,
+    pointRadius: 2, pointBackgroundColor: '#ff6600', fill: true, tension: 0.2 }] },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+    plugins: { legend: { display: false }, tooltip: {
+      backgroundColor: '#141414', borderColor: '#2a2a2a', borderWidth: 1,
+      callbacks: { label: ctx => ' ' + fmt(ctx.parsed.y) }
+    }},
+    scales: {
+      x: { grid: { color: '#1a1a1a' }, ticks: { maxTicksLimit: 7, font: { size: 9 } } },
+      y: { grid: { color: '#1a1a1a' }, ticks: { font: { size: 10 }, callback: v => fmt(v) } }
+    }
+  }
+});
+async function loadBalanceChart(days) {
+  document.getElementById('bal-days-label').textContent = days + 'd';
+  document.querySelectorAll('#main .sym-badge').forEach(b => b.classList.remove('active'));
+  try {
+    const data = await fetch('/api/balance_history?days='+days).then(r=>r.json());
+    balChart.data.labels = data.map(d => d.date.slice(5));
+    balChart.data.datasets[0].data = data.map(d => d.balance);
+    balChart.update('none');
+  } catch(e) { console.error('balance chart error', e); }
+}
+
 // session
 const SESSION_MAP = { 'Sydney':'sydney','Tokyo':'tokyo','London':'london','New York':'newyork' };
 function renderSession(data) {
@@ -307,16 +458,19 @@ function renderAccount(d) {
 
 // positions
 function renderPositions(arr) {
-  $('pos-cnt').textContent = arr.length;
+  window._lastPositions = arr;
+  const filtered = _symFilter === 'ALL' ? arr : arr.filter(p => p.symbol === _symFilter);
+  $('pos-cnt').textContent = filtered.length;
   const tb = $('pos-body');
-  if (!arr.length) { tb.innerHTML = '<tr><td colspan="9" class="empty">No open positions</td></tr>'; return; }
-  tb.innerHTML = arr.map(p =>
+  if (!filtered.length) { tb.innerHTML = '<tr><td colspan="10" class="empty">No open positions</td></tr>'; return; }
+  tb.innerHTML = filtered.map(p =>
     '<tr><td>'+p.ticket+'</td><td>'+p.symbol+'</td>'+
     '<td><span class="badge '+badgeCls(p.type)+'">'+p.type+'</span></td>'+
+    '<td style="font-size:10px;color:#ffaa00">'+p.ea+'</td>'+
     '<td class="r">'+fmt(p.lots,2)+'</td><td class="r">'+fmt(p.entry,2)+'</td>'+
     '<td class="r">'+fmt(p.current,2)+'</td>'+
-    '<td class="r">'+(p.sl?fmt(p.sl,2):'\u2014')+'</td>'+
-    '<td class="r">'+(p.tp?fmt(p.tp,2):'\u2014')+'</td>'+
+    '<td class="r">'+(p.sl?fmt(p.sl,2):'—')+'</td>'+
+    '<td class="r">'+(p.tp?fmt(p.tp,2):'—')+'</td>'+
     '<td class="r pnl '+pnlCls(p.profit)+'">'+fmtPnl(p.profit)+'</td></tr>'
   ).join('');
 }
@@ -338,9 +492,11 @@ function renderOrders(arr) {
 
 // history + chart + stats + drawdown
 function renderHistory(arr) {
-  const trades = arr.filter(d => d.type !== 'BALANCE' && d.profit !== 0);
+  window._lastDeals = arr;
+  const filtered = _symFilter === 'ALL' ? arr : arr.filter(d => d.symbol === _symFilter);
+  const trades = filtered.filter(d => d.type !== 'BALANCE' && d.profit !== 0);
   $('deal-cnt').textContent = trades.length;
-  // chart
+  // chart uses unfiltered arr
   const pts = arr.filter(d => d.symbol !== '');
   eqChart.data.labels = pts.map(d => d.time);
   eqChart.data.datasets[0].data = pts.map(d => d.cumulative);
@@ -359,10 +515,10 @@ function renderHistory(arr) {
   $('st-wins').textContent   = wins.length;
   $('st-losses').textContent = losses.length;
   const wrEl = $('st-wr'); wrEl.textContent = fmt(wr,1)+'%'; wrEl.className = 'sc-val '+(wr>=50?'pos':'neg');
-  $('st-aw').textContent = wins.length   ? '+'+fmt(gw/wins.length)   : '\u2014';
-  $('st-al').textContent = losses.length ? '-'+fmt(gl/losses.length) : '\u2014';
-  const pfEl = $('st-pf'); pfEl.textContent = pf>=999?'\u221e':fmt(pf,2); pfEl.className='sc-val '+(pf>=1?'pos':'neg');
-  // drawdown
+  $('st-aw').textContent = wins.length   ? '+'+fmt(gw/wins.length)   : '—';
+  $('st-al').textContent = losses.length ? '-'+fmt(gl/losses.length) : '—';
+  const pfEl = $('st-pf'); pfEl.textContent = pf>=999?'∞':fmt(pf,2); pfEl.className='sc-val '+(pf>=1?'pos':'neg');
+  // drawdown + alert
   let peak=0, maxDD=0, runEq=0;
   pts.forEach(d => {
     runEq = d.cumulative;
@@ -375,17 +531,22 @@ function renderHistory(arr) {
   ddBar.style.width = ddPct+'%';
   ddBar.style.background = ddPct<5?'#00cc44':ddPct<15?'#ffaa00':'#ff2222';
   $('dd-text').textContent = fmt(maxDD,2)+'% max DD';
+  // per-EA breakdown in stats (append after strip)
+  const eaMap = {};
+  trades.forEach(d => { if(!eaMap[d.ea]) eaMap[d.ea]={count:0,profit:0}; eaMap[d.ea].count++; eaMap[d.ea].profit+=d.profit; });
   // deals table newest first
   const tb = $('deal-body');
-  const rev = [...arr].reverse().filter(d => d.symbol !== '');
-  if (!rev.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">No deals today</td></tr>'; return; }
+  const rev = [...filtered].reverse().filter(d => d.symbol !== '');
+  if (!rev.length) { tb.innerHTML = '<tr><td colspan="9" class="empty">No deals today</td></tr>'; return; }
   tb.innerHTML = rev.map(d =>
     '<tr><td>'+d.time+'</td><td>'+d.ticket+'</td><td>'+d.symbol+'</td>'+
     '<td><span class="badge '+badgeCls(d.type)+'">'+d.type+'</span></td>'+
+    '<td style="font-size:10px;color:#ffaa00">'+d.ea+'</td>'+
     '<td class="r">'+fmt(d.lots,2)+'</td><td class="r">'+fmt(d.price,2)+'</td>'+
     '<td class="r pnl '+pnlCls(d.profit)+'">'+fmtPnl(d.profit)+'</td>'+
     '<td class="r pnl '+pnlCls(d.cumulative)+'">'+fmtPnl(d.cumulative)+'</td></tr>'
   ).join('');
+  checkAlerts(maxDD, window._lastEquity||0);
 }
 
 // tick
@@ -416,18 +577,28 @@ function renderLog(lines) {
   if (atBottom) wrap.scrollTop = wrap.scrollHeight;
 }
 
+// history fetch (respects date range)
+async function fetchHistory() {
+  let url = '/api/history';
+  const params = [];
+  if (_fromDate) params.push('from_date='+_fromDate);
+  if (_toDate)   params.push('to_date='+_toDate);
+  if (params.length) url += '?' + params.join('&');
+  const data = await fetch(url).then(r=>r.json()).catch(()=>[]);
+  if (Array.isArray(data)) renderHistory(data);
+}
+
 // main loop
 async function fetchAll() {
   const dot = $('refresh-dot');
   dot.classList.add('flash');
   setTimeout(() => dot.classList.remove('flash'), 200);
   try {
-    const [status, account, positions, orders, history, symbols, session, log] = await Promise.all([
+    const [status, account, positions, orders, symbols, session, log] = await Promise.all([
       fetch('/api/status').then(r=>r.json()),
       fetch('/api/account').then(r=>r.json()),
       fetch('/api/positions').then(r=>r.json()),
       fetch('/api/orders').then(r=>r.json()),
-      fetch('/api/history').then(r=>r.json()),
       fetch('/api/symbols').then(r=>r.json()),
       fetch('/api/session').then(r=>r.json()),
       fetch('/api/log?lines=50').then(r=>r.json()),
@@ -436,13 +607,17 @@ async function fetchAll() {
     const ticks = Array.isArray(symbols) && symbols.length
       ? await Promise.all(symbols.map(s => fetch('/api/tick?symbol='+encodeURIComponent(s)).then(r=>r.json()).catch(()=>null)))
       : [];
+    fetchHistory();
     const mt5Dot = $('mt5-dot');
-    mt5Dot.classList.toggle('on', !!(status.connected && status.connected_to_broker));
-    if (!account.detail) renderAccount(account);
+    const isConn = !!(status.connected && status.connected_to_broker);
+    mt5Dot.classList.toggle('on', isConn);
+    $('disconnect-banner').classList.toggle('show', !isConn);
+    if (!account.detail) { window._lastEquity = account.equity||0; renderAccount(account); }
     if (Array.isArray(positions)) renderPositions(positions);
     if (Array.isArray(orders)) renderOrders(orders);
     if (Array.isArray(history)) renderHistory(history);
     renderTicks(ticks.filter(t => t && !t.detail));
+    if (Array.isArray(symbols)) updateSymFilterBar(symbols);
     renderSession(session);
     if (Array.isArray(log)) renderLog(log);
   } catch(e) {
@@ -450,6 +625,9 @@ async function fetchAll() {
     $('mt5-dot').classList.remove('on');
   }
 }
+initDateBar();
+loadAlertSettings();
+loadBalanceChart(7);
 fetchAll();
 setInterval(fetchAll, 3000);
 </script>
