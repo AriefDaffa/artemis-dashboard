@@ -233,6 +233,9 @@ async def api_history():
     cumulative = 0.0
     for d in sorted(deals, key=lambda x: x.time):
         cumulative += d.profit
+        # skip entry deals — MT5 entry=0 means position open, profit is always 0
+        if d.entry == 0 and d.profit == 0.0:
+            continue
         result.append({
             "ticket":     d.ticket,
             "order":      d.order,
