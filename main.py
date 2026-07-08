@@ -306,7 +306,10 @@ async def api_history(
     if not mt5_connect():
         return []
     now_utc = datetime.now(timezone.utc)
-    if from_date:
+    if from_date == "all":
+        # All-time: go back 10 years
+        from_dt = now_utc - timedelta(days=365 * 10)
+    elif from_date:
         try:
             from_dt = datetime.strptime(from_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
         except ValueError:

@@ -155,6 +155,7 @@ tr:hover td{background:#070707}
       <div class="ctrl-row"><span class="ctrl-label">From</span><input type="date" class="ctrl-input" id="from-date"></div>
       <div class="ctrl-row"><span class="ctrl-label">To</span><input type="date" class="ctrl-input" id="to-date"></div>
       <div class="ctrl-row"><span class="ctrl-label" style="width:auto">Apply</span><button class="ctrl-btn" onclick="applyDateRange()" style="margin:0">Apply</button><button class="ctrl-btn" onclick="resetDateRange()" style="margin:0;background:#111;color:var(--dim);border:1px solid var(--border2)">Today</button></div>
+      <button class="ctrl-btn" onclick="loadAllTime()" style="background:#1a1a1a;color:var(--orange);border:1px solid var(--orange);margin-top:3px">All Time</button>
       <div style="height:6px"></div>
       <div class="ctrl-row"><span class="ctrl-label">DD%</span><input type="number" class="ctrl-input" id="al-dd" placeholder="15" min="1" max="100" step="0.5"></div>
       <div class="ctrl-row"><span class="ctrl-label">EQ Floor</span><input type="number" class="ctrl-input" id="al-eq" placeholder="0" step="1"></div>
@@ -327,6 +328,7 @@ let _fromDate=null,_toDate=null;
 function getTodayStr(){return new Date().toISOString().split('T')[0];}
 function applyDateRange(){_fromDate=$('from-date').value||null;_toDate=$('to-date').value||null;fetchHistory();}
 function resetDateRange(){_fromDate=null;_toDate=null;const t=getTodayStr();$('from-date').value=t;$('to-date').value=t;fetchHistory();}
+function loadAllTime(){_fromDate='all';_toDate=null;$('from-date').value='';$('to-date').value='';fetchHistory();}
 function initDateBar(){const t=getTodayStr();$('from-date').value=t;$('to-date').value=t;}
 async function fetchHistory(){
   let url='/api/history';const params=[];
