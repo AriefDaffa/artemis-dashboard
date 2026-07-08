@@ -12,6 +12,15 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
+# ── load .env if present ──────────────────────────────────────────────────────
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    for _line in _env_path.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _v = _line.split("=", 1)
+            os.environ[_k.strip()] = _v.strip()  # always overwrite from .env
+
 import MetaTrader5 as mt5
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
@@ -27,6 +36,8 @@ MT5_LOG_DIR = Path(os.getenv(
 HTML_PATH = Path(__file__).parent / "templates" / "index.html"
 PORT = int(os.getenv("PORT", "8100"))
 DISCORD_WEBHOOK = os.getenv("DISCORD_WEBHOOK", "")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 # ── app ──────────────────────────────────────────────────────────────────────
 app = FastAPI(title="ARTEMIS", docs_url=None, redoc_url=None)
@@ -398,16 +409,34 @@ async def api_session():
 
 @app.post("/api/alert")
 async def api_alert(payload: dict):
-    """Send an alert to Discord via webhook or Hermes send_message."""
+    """Send alert to Telegram (primary) or Discord (fallback)."""
     msg = payload.get("message", "ARTEMIS ALERT")
+    
+    # Try Telegram first
+    if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        try:
+            url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(url, json={
+                    "chat_id": TELEGRAM_CHAT_ID,
+                    "text": f"🚨 *ARTEMIS ALERT*\n\n{msg}",
+                    "parse_mode": "Markdown"
+                })
+                if resp.status_code == 200:
+                    return {"sent": True, "via": "telegram"}
+        except Exception as e:
+            pass  # Fall through to Discord
+    
+    # Fallback to Discord
     if DISCORD_WEBHOOK:
         try:
             async with httpx.AsyncClient() as client:
                 await client.post(DISCORD_WEBHOOK, json={"content": f"🚨 **ARTEMIS ALERT**\n{msg}"})
-            return {"sent": True, "via": "webhook"}
+            return {"sent": True, "via": "discord"}
         except Exception as e:
             return {"sent": False, "error": str(e)}
-    return {"sent": False, "error": "DISCORD_WEBHOOK not configured"}
+    
+    return {"sent": False, "error": "No alert channel configured"}
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
